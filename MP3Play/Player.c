@@ -7,12 +7,17 @@
 
 #include "Player.h"
 
+#include <ctype.h>
+
 #include "usb_host.h"
-#include <fatfs.h>
+#include "fatfs.h"
 #include "ff.h"
 #include "MP3Play.h"
 
 #define _MAX_PATH_LEN (_MAX_LFN + 4) // 4 it for "0:/" + zero end of string
+#define TASK_STACK_SIZE 1024
+#define DELAY_BETWEEN_MP3 200
+#define FILENAME_EXTENSION_LENGTH 3
 
 typedef struct {
     FRESULT result;
@@ -32,10 +37,11 @@ static struct tag_info info;
 static void playerTask(void *param);
 static void returnLevelUp(void);
 static uint8_t concatPath(char *path, char *subPath);
+static uint8_t checkFileExt(const char *path, const char *ext);
 
 uint8_t playerInit(void) {
     playerData.needFindDir = 0;
-    xTaskCreate(playerTask, "Player", 1024, NULL, 1, NULL);
+    xTaskCreate(playerTask, "Player", TASK_STACK_SIZE, NULL, 1, NULL);
     return 0;
 }
 
@@ -80,13 +86,12 @@ static void playerTask(void *param) {
 
                 if (!(playerData.fileInfo.fattrib & AM_DIR) && !playerData.needFindDir) { /* It is a file */
 
-                    if ((memcmp(&playerData.fileInfo.fname[strlen(playerData.fileInfo.fname) - 3], "mp3", 3) == 0)
-                            || (memcmp(&playerData.fileInfo.fname[strlen(playerData.fileInfo.fname) - 3], "MP3", 3) == 0)) {
+                    if (!checkFileExt(playerData.fileInfo.fname, "mp3")) {
                         strcpy(playerData.fullPath, playerData.currentDir);
                         // if we can't concatenate filename just drop it
                         if (!concatPath(playerData.fullPath, playerData.fileInfo.fname)) {
                             playerData.result = f_open(&playerData.file, playerData.fullPath,
-                                    FA_OPEN_EXISTING | FA_READ);
+                            FA_OPEN_EXISTING | FA_READ);
                             if (playerData.result == FR_OK) {
                                 f_lseek(&playerData.file, 0UL);
 
@@ -102,7 +107,7 @@ static void playerTask(void *param) {
                                 memset(&info, 0, sizeof(info));
                             }
                         }
-                        vTaskDelay(200);
+                        vTaskDelay(DELAY_BETWEEN_MP3);
                     }
                 }
 
@@ -141,6 +146,9 @@ void returnLevelUp(void) {
 
 uint8_t concatPath(char *path, char *subPath) {
     uint16_t len = strlen(path);
+    if(!path || !subPath) {
+        return 2;
+    }
     if (len != 3) {
         strcat(path, "/");
         len++;
@@ -151,4 +159,27 @@ uint8_t concatPath(char *path, char *subPath) {
         return 1;
     }
     return 0;
+}
+
+uint8_t checkFileExt(const char *path, const char *ext) {
+    char upperFileExt[4], upperExt[4];
+    uint8_t i;
+    uint32_t extPos = strlen(path) - FILENAME_EXTENSION_LENGTH;
+    if(!path || !ext){
+        return 2;
+    }
+
+    for (i = 0; i < FILENAME_EXTENSION_LENGTH + 1; i++) {
+        upperFileExt[i] = toupper(path[extPos + i]);
+    }
+
+    for (i = 0; i < FILENAME_EXTENSION_LENGTH + 1; i++) {
+        upperExt[i] = toupper(ext[i]);
+    }
+
+    if (strcmp(upperFileExt, upperExt) == 0) {
+        return 0;
+    }
+
+    return 1;
 }

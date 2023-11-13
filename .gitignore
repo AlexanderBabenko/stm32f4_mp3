@@ -1,5 +1,7 @@
 # Prerequisites
 *.d
+*.cyclo
+*.list
 
 # Object files
 *.o
