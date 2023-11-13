@@ -12,15 +12,17 @@
 #include "ff.h"
 #include "MP3Play.h"
 
+#define _MAX_PATH_LEN (_MAX_LFN + 4) // 4 it for "0:/" + zero end of string
+
 typedef struct {
     FRESULT result;
     DIR dir;
     FIL file;
     FILINFO fileInfo;
-    char fullPath[_MAX_LFN + 4]; // 4 it for "0:/" + zero end of string
-    char currentDir[_MAX_LFN + 4]; // 4 it for "0:/" + zero end of string
+    char fullPath[_MAX_PATH_LEN];
+    char currentDir[_MAX_PATH_LEN];
     uint8_t needFindDir;
-    char previousName[_MAX_LFN + 4];
+    char previousName[_MAX_PATH_LEN];
 } playerData_t;
 
 static const TCHAR RootDir[] = { "0:/" };
@@ -29,6 +31,7 @@ static struct tag_info info;
 
 static void playerTask(void *param);
 static void returnLevelUp(void);
+static uint8_t concatPath(char *path, char *subPath);
 
 uint8_t playerInit(void) {
     playerData.needFindDir = 0;
@@ -63,14 +66,16 @@ static void playerTask(void *param) {
                     if (!playerData.needFindDir) {
                         playerData.previousName[0] = 0;
                         playerData.needFindDir = 1; // need find next dir
+                        f_readdir(&playerData.dir, 0);
+                        continue;
                     } else {
                         returnLevelUp(); // need find higher level
                         if (playerData.previousName[0] == 0) { // it is root
                             playerData.needFindDir = 0;
                         }
+                        break;
                     }
 
-                    break;
                 }
 
                 if (!(playerData.fileInfo.fattrib & AM_DIR) && !playerData.needFindDir) { /* It is a file */
@@ -78,39 +83,35 @@ static void playerTask(void *param) {
                     if ((memcmp(&playerData.fileInfo.fname[strlen(playerData.fileInfo.fname) - 3], "mp3", 3) == 0)
                             || (memcmp(&playerData.fileInfo.fname[strlen(playerData.fileInfo.fname) - 3], "MP3", 3) == 0)) {
                         strcpy(playerData.fullPath, playerData.currentDir);
-                        uint16_t len = strlen(playerData.currentDir);
-                        if (len != 3) {
-                            strcat(playerData.fullPath, "/");
+                        // if we can't concatenate filename just drop it
+                        if (!concatPath(playerData.fullPath, playerData.fileInfo.fname)) {
+                            playerData.result = f_open(&playerData.file, playerData.fullPath,
+                                    FA_OPEN_EXISTING | FA_READ);
+                            if (playerData.result == FR_OK) {
+                                f_lseek(&playerData.file, 0UL);
+
+                                mp3ParseId3v1(&playerData.file, &info);
+                                mp3ParseId3v2(&playerData.file, &info);
+
+                                f_lseek(&playerData.file, info.data_start);
+
+                                // here need call MP3 decoder
+                                mp3TestTask(&playerData.file);
+
+                                f_close(&playerData.file);
+                                memset(&info, 0, sizeof(info));
+                            }
                         }
-                        strcat(playerData.fullPath, playerData.fileInfo.fname);
-                        playerData.result = f_open(&playerData.file, playerData.fullPath, FA_OPEN_EXISTING | FA_READ);
-                        if (playerData.result == FR_OK) {
-                            f_lseek(&playerData.file, 0UL);
-
-                            mp3ParseId3v1(&playerData.file, &info);
-                            mp3ParseId3v2(&playerData.file, &info);
-
-                            f_lseek(&playerData.file, info.data_start);
-
-                            // here need call MP3 decoder
-                            mp3TestTask(&playerData.file);
-
-                            f_close(&playerData.file);
-                            memset(&info, 0, sizeof(info));
-                        }/**/
                         vTaskDelay(200);
                     }
                 }
 
                 if (playerData.fileInfo.fattrib & AM_DIR && playerData.needFindDir) {
                     if (!playerData.previousName[0]) {
-                        uint16_t len = strlen(playerData.currentDir);
-                        if (len != 3) {
-                            strcat(playerData.currentDir, "/");
+                        // if we can't concatenate path means need return level up
+                        if (!concatPath(playerData.currentDir, playerData.fileInfo.fname)) {
+                            playerData.needFindDir = 0;
                         }
-                        strcat(playerData.currentDir, playerData.fileInfo.fname);
-
-                        playerData.needFindDir = 0;
                         break;
                     } else if (strcmp(playerData.previousName, playerData.fileInfo.fname) == 0) {
                         playerData.previousName[0] = 0; // need next item after that
@@ -138,3 +139,16 @@ void returnLevelUp(void) {
     }
 }
 
+uint8_t concatPath(char *path, char *subPath) {
+    uint16_t len = strlen(path);
+    if (len != 3) {
+        strcat(path, "/");
+        len++;
+    }
+    if ((len + strlen(subPath) + 1) <= _MAX_PATH_LEN) {
+        memcpy(path + len, subPath, strlen(subPath) + 1); // copy len + 1 for zero terminating
+    } else {
+        return 1;
+    }
+    return 0;
+}
