@@ -179,10 +179,12 @@ static int mp3RefillInBuffer(FIL *mp3file) {
     }
 
     bytesToRead = sizeof(mp3InBuf.InBuf) - mp3InBuf.bytesLeft;
-    BSP_LED_Toggle(LED5);
+    BSP_LED_On(LED5);
     if (f_read(mp3file, (BYTE*) mp3InBuf.InBuf + mp3InBuf.bytesLeft, bytesToRead, &bytesRead) != FR_OK) {
+        BSP_LED_Off(LED5);
         return -1;
     }
+    BSP_LED_Off(LED5);
     if (bytesRead == bytesToRead) {
         mp3InBuf.readPtr = mp3InBuf.InBuf;
         mp3InBuf.offset = 0;
