@@ -269,6 +269,8 @@ static __inline int CLZ(int x)
 
 #elif defined(__GNUC__) && defined(__arm__)
 
+#include "cmsis_compiler.h"
+
 typedef long long Word64;
 
 static __inline int MULSHIFT32(int x, int y)
@@ -305,7 +307,9 @@ static __inline int FASTABS(int x)
 
 static __inline int CLZ(int x)
 {
-	int numZeros;
+    return __CLZ(x);
+
+	/*int numZeros;
 
 	if (!x)
 		return (sizeof(int) * 8);
@@ -316,7 +320,7 @@ static __inline int CLZ(int x)
 		x <<= 1;
 	} 
 
-	return numZeros;
+	return numZeros;*/
 }
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -338,19 +342,7 @@ static __inline Word64 SHL64(Word64 x, int n)
 
 static __inline Word64 SAR64(Word64 x, int n)
 {
-	/*unsigned int xLo = ((unsigned int *)&x)[0];
-	int xHi = ((int *)&x)[1];
-	unsigned char nb = (unsigned char)n;*/
-
     return (x >> n);
-
-	//if (n < 32) {
-	//} else //if (n < 64) {
-		/* sar masks cl to 0x1f */
-
-	//} else { // n==64
-
-	//}
 }
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

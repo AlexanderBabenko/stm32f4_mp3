@@ -14,11 +14,9 @@
 #include "stm32f4_discovery.h"
 #include "coder.h"
 #include "mp3dec.h"
+#include "AudioOut.h"
 
-#include "usb_host.h"
 #include "fatfs.h"
-
-#include "semphr.h"
 
 #define MP3_AUDIO_BUF_SZ    (1024)
 
@@ -29,53 +27,58 @@ typedef struct {
     uint8_t InBuf[MAINBUF_SIZE];
 } mp3InBuf_t;
 
-typedef struct {
-    xSemaphoreHandle sem;
-    int16_t buf1[MAX_NSAMP * MAX_NGRAN * MAX_NCHAN];
-    int16_t buf2[MAX_NSAMP * MAX_NGRAN * MAX_NCHAN];
-    uint8_t activeBuf;
-    uint8_t itIsFirstWrite;
-} mp3OutBuf_t;
-
-uint8_t mp3ID3Buffer[MP3_AUDIO_BUF_SZ];
+uint8_t *mp3ID3Buffer;
 
 static HMP3Decoder mp3Decoder;
 static MP3FrameInfo mp3FrameInfo;
-static mp3OutBuf_t mp3OutBuf;
 static mp3InBuf_t mp3InBuf;
-
+static struct tag_info info;
 
 static void mp3Reset(void);
-static int mp3Process(FIL *mp3file);
+static int mp3Process(FIL *mp3file, audioOut_t *pOut);
 static int mp3RefillInBuffer(FIL *mp3file);
 
-int8_t mp3PlayInit(void) {
-    BSP_AUDIO_OUT_Init(OUTPUT_DEVICE_AUTO, 70, AUDIO_FREQUENCY_44K);
-    vSemaphoreCreateBinary(mp3OutBuf.sem);
-    mp3OutBuf.activeBuf = 0;
-    mp3OutBuf.itIsFirstWrite = 1;
+static int mp3ParseId3v1(FIL *fd, struct tag_info *info);
+static int mp3ParseId3v2(FIL *fd, struct tag_info *info);
+
+int8_t mp3PlayInit(uint8_t *pWorkBuf) {
+    //InitAudioOut();
+    if(!pWorkBuf) {
+        return 1;
+    }
+    memset(&info, 0, sizeof(info));
+    mp3ID3Buffer = pWorkBuf;
     mp3Decoder = MP3InitDecoder();
     mp3Reset();
     return 0;
 }
 
-void mp3TestTask(FIL *mp3file) {
+int8_t mp3Play(FIL *mp3file, audioOut_t *pOut) {
     int mp3Result = 0;
+    if(!mp3file || !pOut){
+        return 1;
+    }
+
+    mp3ParseId3v1(mp3file, &info);
+    mp3ParseId3v2(mp3file, &info);
+    f_lseek(mp3file, info.data_start);
+
+    pOut->pInit();
 
     while (mp3Result == 0) {
 
-        mp3Result = mp3Process(mp3file);
+        mp3Result = mp3Process(mp3file, pOut);
 
         if (BSP_PB_GetState(BUTTON_KEY)) {
             mp3Result = 1;
         }
     }
-    xSemaphoreTake(mp3OutBuf.sem, portMAX_DELAY);
-    BSP_AUDIO_OUT_Stop(CODEC_PDWN_HW);
+
+    pOut->pDeinit();
+
     mp3Reset();
-    mp3OutBuf.itIsFirstWrite = 1;
-    xSemaphoreGive(mp3OutBuf.sem);
     mp3Result = 0;
+    return 0;
 }
 
 static void mp3Reset(void) {
@@ -83,7 +86,7 @@ static void mp3Reset(void) {
     mp3InBuf.bytesLeft = 0;
 }
 
-static int mp3Process(FIL *mp3file) {
+static int mp3Process(FIL *mp3file, audioOut_t *pOut) {
     int err;
     short *pBuf;
 
@@ -123,11 +126,7 @@ static int mp3Process(FIL *mp3file) {
             return -3;
     }
 
-    if (!mp3OutBuf.activeBuf) {
-        pBuf = mp3OutBuf.buf1;
-    } else {
-        pBuf = mp3OutBuf.buf2;
-    }
+    pBuf = pOut->pGetActiveBuffer();
 
     BSP_LED_On(LED4);
     err = MP3Decode(mp3Decoder, &mp3InBuf.readPtr, &mp3InBuf.bytesLeft, pBuf, 0);
@@ -155,16 +154,7 @@ static int mp3Process(FIL *mp3file) {
         // no error
         MP3GetLastFrameInfo(mp3Decoder, &mp3FrameInfo);
 
-        xSemaphoreTake(mp3OutBuf.sem, portMAX_DELAY);
-
-        if (mp3OutBuf.itIsFirstWrite == 1) {
-            //BSP_AUDIO_OUT_SetFrequency(mp3FrameInfo.samprate);
-            BSP_AUDIO_OUT_Init(OUTPUT_DEVICE_AUTO, 70, mp3FrameInfo.samprate);
-            BSP_AUDIO_OUT_Play((uint16_t*) pBuf, mp3FrameInfo.outputSamps * 2);
-            mp3OutBuf.itIsFirstWrite = 0;
-        }
-
-        mp3OutBuf.activeBuf ^= 0xFF;
+        pOut->pPlayActiveBuffer(mp3FrameInfo.samprate, mp3FrameInfo.outputSamps);
     }
 
     return 0;
@@ -195,23 +185,6 @@ static int mp3RefillInBuffer(FIL *mp3file) {
     }
 }
 
-void BSP_AUDIO_OUT_TransferComplete_CallBack(void) {
-    short *pBuf;
-    static signed portBASE_TYPE xHigherPriorityTaskWoken;
-    xHigherPriorityTaskWoken = pdFALSE;
-    if (!mp3OutBuf.activeBuf) {
-        pBuf = mp3OutBuf.buf1;
-    } else {
-        pBuf = mp3OutBuf.buf2;
-    }
-
-    BSP_AUDIO_OUT_Play((uint16_t*) pBuf, mp3FrameInfo.outputSamps * 2);
-
-    xSemaphoreGiveFromISR(mp3OutBuf.sem, &xHigherPriorityTaskWoken);
-
-    portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
-}
-
 int mp3ParseId3v1(FIL *fd, struct tag_info *info) {
     FRESULT res;
     UINT bytes_read;
@@ -240,7 +213,7 @@ int mp3ParseId3v2(FIL *fd, struct tag_info *info) {
     UINT bytesRead;
 
     f_rewind(fd);
-    f_read(fd, (char*) mp3ID3Buffer, sizeof(mp3ID3Buffer), &bytesRead);
+    f_read(fd, (char*) mp3ID3Buffer, 1024, &bytesRead);
 
     if (strncmp("ID3", (char*) mp3ID3Buffer, 3) == 0) {
         uint32_t tagSize, frameSize, i;
@@ -301,3 +274,26 @@ int mp3ParseId3v2(FIL *fd, struct tag_info *info) {
     return -1;
 }
 
+static char* GetTrackName(void){
+    return info.title;
+}
+
+static uint32_t GetBitrate(void){
+    return info.bit_rate;
+}
+
+static int8_t Deinit(void) {
+    memset(&info, 0, sizeof(info));
+    return 0;
+}
+
+player_t* GetMp3Player(void){
+    static player_t mp3 = {
+            .pInit = mp3PlayInit,
+            .pPlay = mp3Play,
+            .pGetTrackName = GetTrackName,
+            .pGetBitrate = GetBitrate,
+            .pDeinit = Deinit
+    };
+    return &mp3;
+}

@@ -21,12 +21,12 @@
 #include "cmsis_os.h"
 #include "fatfs.h"
 #include "usb_host.h"
-#include "MP3Play.h"
-#include "stm32f4_discovery.h"
-#include "Player.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "MP3Play.h"
+#include "stm32f4_discovery.h"
+#include "Player.h"
 
 /* USER CODE END Includes */
 
@@ -146,8 +146,6 @@ int main(void)
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
   /* USER CODE END RTOS_EVENTS */
-
-
 
   /* Start scheduler */
   osKernelStart();

@@ -11,6 +11,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "ff.h"
+#include "Player.h"
 
 /* music tag information structure */
 typedef struct tag_info
@@ -26,9 +27,7 @@ typedef struct tag_info
     uint32_t data_start; /* start position of data   */
 } tag_info_t;
 
-int8_t mp3PlayInit(void);
-void mp3TestTask(FIL *mp3file);
-int mp3ParseId3v1(FIL *fd, struct tag_info *info);
-int mp3ParseId3v2(FIL *fd, struct tag_info *info);
+
+player_t* GetMp3Player(void);
 
 #endif //MP3PLAY_H_
