@@ -25,6 +25,9 @@ WAVEFORMATEX winfo;
 static uint8_t *buff;
 
 int8_t Init(uint8_t *pWorkBuf){
+    if(!pWorkBuf){
+        return 1;
+    }
     buff = pWorkBuf;
     return 0;
 }
@@ -100,11 +103,7 @@ static int8_t wavPlay(FIL *wavFile, audioOut_t* pOut)
     }
     winfo.cbSize = *(uint32_t *)(buff+0x04);
 
-    //printf("\nSample Rate = %ul, Channels = %ul, BitsPerSample = %ul, file size = %ulM Bytes\n",
-    //        winfo.nSamplesPerSec, winfo.nChannels, winfo.wBitsPerSample, winfo.cbSize/1024/1024);
-
     if (winfo.BitsPerSample!=16) {
-       // printf("8bit format is not support !\n\r");
         return 1;
     }
 
@@ -138,7 +137,6 @@ player_t* GetWavPlay(void){
             .pGetTrackName = GetTrackName,
             .pGetBitrate = GetBitrate,
             .pDeinit = Deinit
-
     };
     return &wavPlayer;
 }

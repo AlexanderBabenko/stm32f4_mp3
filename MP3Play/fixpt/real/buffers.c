@@ -50,14 +50,16 @@
 #include "coder.h"
 #include "FreeRTOS.h"
 
-static MP3DecInfo MP3DecInfoInst __attribute__((section(".ccmdata")));
+extern unsigned long _sccmram;
+
+/*static MP3DecInfo MP3DecInfoInst __attribute__((section(".ccmdata")));
 static FrameHeader FrameHeaderInst __attribute__((section(".ccmdata")));
 static SideInfo SideInfoInst __attribute__((section(".ccmdata")));
 static ScaleFactorInfo ScaleFactorInfoInst __attribute__((section(".ccmdata")));
 static HuffmanInfo HuffmanInfoInst __attribute__((section(".ccmdata")));
 static DequantInfo DequantInfoInst __attribute__((section(".ccmdata")));
 static IMDCTInfo IMDCTInfoInst __attribute__((section(".ccmdata")));
-static SubbandInfo SubbandInfoInst __attribute__((section(".ccmdata")));
+static SubbandInfo SubbandInfoInst __attribute__((section(".ccmdata")));*/
 
 /**************************************************************************************
  * Function:    ClearBuffer
@@ -111,8 +113,14 @@ MP3DecInfo *AllocateBuffers(void)
 	IMDCTInfo *mi;
 	SubbandInfo *sbi;
 
+	char *pCcmData = (char*)&_sccmram;
+
 	//mp3DecInfo = (MP3DecInfo *)malloc(sizeof(MP3DecInfo));
-	mp3DecInfo = &MP3DecInfoInst;
+	//mp3DecInfo = &MP3DecInfoInst;
+
+	mp3DecInfo = (MP3DecInfo *) pCcmData;
+	pCcmData += sizeof(MP3DecInfo);
+
 	if (!mp3DecInfo)
 		return 0;
 	ClearBuffer(mp3DecInfo, sizeof(MP3DecInfo));
@@ -125,13 +133,28 @@ MP3DecInfo *AllocateBuffers(void)
 	mi =  (IMDCTInfo *)       malloc(sizeof(IMDCTInfo));
 	sbi = (SubbandInfo *)     malloc(sizeof(SubbandInfo));*/
 
-	fh =  &FrameHeaderInst;
+	/*fh =  &FrameHeaderInst;
 	si =  &SideInfoInst;
 	sfi = &ScaleFactorInfoInst;
 	hi =  &HuffmanInfoInst;
 	di =  &DequantInfoInst;
 	mi =  &IMDCTInfoInst;
-	sbi = &SubbandInfoInst;
+	sbi = &SubbandInfoInst;*/
+
+	fh =  (FrameHeader *) pCcmData;
+    pCcmData += sizeof(FrameHeader);
+	si =  (SideInfo *) pCcmData;
+    pCcmData += sizeof(SideInfo);
+	sfi = (ScaleFactorInfo *) pCcmData;
+    pCcmData += sizeof(ScaleFactorInfo);
+	hi =  (HuffmanInfo *) pCcmData;
+    pCcmData += sizeof(HuffmanInfo);
+	di =  (DequantInfo *) pCcmData;
+    pCcmData += sizeof(DequantInfo);
+	mi =  (IMDCTInfo *) pCcmData;
+    pCcmData += sizeof(IMDCTInfo);
+	sbi = (SubbandInfo *) pCcmData;
+    pCcmData += sizeof(SubbandInfo);
 
 	mp3DecInfo->FrameHeaderPS =     (void *)fh;
 	mp3DecInfo->SideInfoPS =        (void *)si;

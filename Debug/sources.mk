@@ -43,4 +43,6 @@ Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang \
 Player \
 USB_HOST/App \
 USB_HOST/Target \
+aac \
+aac/real \
 

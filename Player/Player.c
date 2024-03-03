@@ -14,9 +14,10 @@
 #include "ff.h"
 #include "MP3Play.h"
 #include "WavPlay.h"
+#include "AacPlayer.h"
 
 #define _MAX_PATH_LEN (_MAX_LFN + 4) // 4 it for "0:/" + zero end of string
-#define TASK_STACK_SIZE 1024
+#define TASK_STACK_SIZE (2 * 1024) // in words means *4
 #define DELAY_BETWEEN_MP3 200
 #define FILENAME_EXTENSION_LENGTH 3
 
@@ -33,7 +34,7 @@ typedef struct {
 
 static const TCHAR RootDir[] = { "0:/" };
 static playerData_t playerData;
-static uint8_t workBuf[1024];
+static uint8_t workBuf[2048];
 
 static void playerTask(void *param);
 static void returnLevelUp(void);
@@ -95,6 +96,14 @@ static void playerTask(void *param) {
 
                     if (!checkFileExt(playerData.fileInfo.fname, "wav")) {
                         pPlayer = GetWavPlay();
+                    }
+
+                    if (!checkFileExt(playerData.fileInfo.fname, "m4a")) {
+                        pPlayer = GetM4APlayer();
+                    }
+
+                    if (!checkFileExt(playerData.fileInfo.fname, "aac")) {
+                        pPlayer = GetAacPlayer();
                     }
 
                     if(pPlayer){

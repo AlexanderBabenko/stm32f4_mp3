@@ -9,6 +9,8 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include aac/real/subdir.mk
+-include aac/subdir.mk
 -include USB_HOST/Target/subdir.mk
 -include USB_HOST/App/subdir.mk
 -include Player/subdir.mk

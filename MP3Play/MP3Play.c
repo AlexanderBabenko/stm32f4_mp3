@@ -213,7 +213,7 @@ int mp3ParseId3v2(FIL *fd, struct tag_info *info) {
     UINT bytesRead;
 
     f_rewind(fd);
-    f_read(fd, (char*) mp3ID3Buffer, 1024, &bytesRead);
+    f_read(fd, (char*) mp3ID3Buffer, MP3_AUDIO_BUF_SZ, &bytesRead);
 
     if (strncmp("ID3", (char*) mp3ID3Buffer, 3) == 0) {
         uint32_t tagSize, frameSize, i;
