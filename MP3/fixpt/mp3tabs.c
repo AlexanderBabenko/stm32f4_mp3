@@ -41,12 +41,8 @@
  * mp3tabs.c - platform-independent tables for MP3 decoder (global, read-only)
  **************************************************************************************/
 
-#include "mp3common.h"
-
-/* indexing = [version][samplerate index]
- * sample rate of frame (Hz)
- */
-#include "mp3common.h"
+#include "../../MP3/fixpt/pub/mp3common.h"
+#include "../../MP3/fixpt/pub/mp3common.h"
 
 /* indexing = [version][samplerate index]
  * sample rate of frame (Hz)

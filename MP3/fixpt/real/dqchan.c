@@ -41,8 +41,8 @@
  * dqchan.c - dequantization of transform coefficients
  **************************************************************************************/
 
-#include "coder.h"
-#include "assembly.h"
+#include "../../../MP3/fixpt/real/assembly.h"
+#include "../../../MP3/fixpt/real/coder.h"
 
 typedef int ARRAY3[3];	/* for short-block reordering */
 

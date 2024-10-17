@@ -36,7 +36,7 @@
 #ifndef _MPADECOBJFIXPT_H_
 #define _MPADECOBJFIXPT_H_
 
-#include "mp3dec.h"		/* public C API for new MP3 decoder */
+#include "../../../MP3/fixpt/pub/mp3dec.h"		/* public C API for new MP3 decoder */
 
 class CMpaDecObj
 {

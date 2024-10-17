@@ -41,24 +41,10 @@
  * bitstream.c - bitstream unpacking, frame header parsing, side info parsing
  **************************************************************************************/
 
-#include "coder.h"
-#include "assembly.h"
-
-/**************************************************************************************
- * Function:    SetBitstreamPointer
- *
- * Description: initialize bitstream reader
- *
- * Inputs:      pointer to BitStreamInfo struct
- *              number of bytes in bitstream
- *              pointer to byte-aligned buffer of data to read from
- *
- * Outputs:     filled bitstream info struct
- *
- * Return:      none
- **************************************************************************************/
-#include "coder.h"
-#include "assembly.h"
+#include "../../../MP3/fixpt/real/assembly.h"
+#include "../../../MP3/fixpt/real/assembly.h"
+#include "../../../MP3/fixpt/real/coder.h"
+#include "../../../MP3/fixpt/real/coder.h"
 
 /**************************************************************************************
  * Function:    SetBitstreamPointer

@@ -42,8 +42,8 @@
  *             polyphase filter
  **************************************************************************************/
 
-#include "coder.h"
-#include "assembly.h"
+#include "../../../MP3/fixpt/real/assembly.h"
+#include "../../../MP3/fixpt/real/coder.h"
 
 #define COS0_0  0x4013c251	/* Q31 */
 #define COS0_1  0x40b345bd	/* Q31 */

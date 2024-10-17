@@ -43,7 +43,8 @@
  **************************************************************************************/
 
 #include "string.h"		/* for memmove, memcpy (can replace with different implementations if desired) */
-#include "mp3common.h"	/* includes mp3dec.h (public API) and internal, platform-independent API */
+
+#include "../../MP3/fixpt/pub/mp3common.h"	/* includes mp3dec.h (public API) and internal, platform-independent API */
 //#include "hxthreadyield.h"
 
 /**************************************************************************************

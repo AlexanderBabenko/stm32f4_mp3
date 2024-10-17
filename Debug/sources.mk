@@ -1,6 +1,6 @@
 ################################################################################
 # Automatically-generated file. Do not edit!
-# Toolchain: GNU Tools for STM32 (11.3.rel1)
+# Toolchain: GNU Tools for STM32 (12.3.rel1)
 ################################################################################
 
 ELF_SRCS := 
@@ -29,9 +29,8 @@ Core/Startup \
 Drivers/STM32F4xx_HAL_Driver/Src \
 FATFS/App \
 FATFS/Target \
-MP3Play \
-MP3Play/fixpt \
-MP3Play/fixpt/real \
+MP3/fixpt \
+MP3/fixpt/real \
 Middlewares/ST/STM32_USB_Host_Library/Class/MSC/Src \
 Middlewares/ST/STM32_USB_Host_Library/Core/Src \
 Middlewares/Third_Party/FatFs/src \

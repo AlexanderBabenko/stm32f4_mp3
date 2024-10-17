@@ -44,7 +44,7 @@
 #ifndef _CODER_H
 #define _CODER_H
 
-#include "mp3common.h"
+#include "../../../MP3/fixpt/pub/mp3common.h"
 
 #if defined(ASSERT)
 #undef ASSERT

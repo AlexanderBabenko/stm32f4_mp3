@@ -41,7 +41,7 @@
  * trigtabs.c - global ROM tables for pre-calculated trig coefficients
  **************************************************************************************/
 
-#include "coder.h"
+#include "../../../MP3/fixpt/real/coder.h"
 
 /* post-IMDCT window, win[blockType][i]
  * format = Q31

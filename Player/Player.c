@@ -83,7 +83,6 @@ static void playerTask(void *param) {
                         }
                         break;
                     }
-
                 }
 
                 if (!(playerData.fileInfo.fattrib & AM_DIR) && !playerData.needFindDir) { /* It is a file */

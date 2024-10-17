@@ -12,11 +12,11 @@
 #include "ff.h"
 #include "stm32f4_discovery_audio.h"
 #include "stm32f4_discovery.h"
-#include "coder.h"
-#include "mp3dec.h"
 #include "AudioOut.h"
 
 #include "fatfs.h"
+#include "../MP3/fixpt/pub/mp3dec.h"
+#include "../MP3/fixpt/real/coder.h"
 
 #define MP3_AUDIO_BUF_SZ    (1024)
 
@@ -240,16 +240,16 @@ int mp3ParseId3v2(FIL *fd, struct tag_info *info) {
                 frameSize = ((uint32_t) mp3ID3Buffer[i + 3] << 14) | ((uint16_t) mp3ID3Buffer[i + 4] << 7)
                         | mp3ID3Buffer[i + 5];
             }
-            if (i + frameSize + frameHeaderSize + frameHeaderSize >= sizeof(mp3ID3Buffer)) {
-                if (frameSize + frameHeaderSize > sizeof(mp3ID3Buffer)) {
+            if (i + frameSize + frameHeaderSize + frameHeaderSize >= MP3_AUDIO_BUF_SZ/*sizeof(mp3ID3Buffer)*/) {
+                if (frameSize + frameHeaderSize > /*sizeof(mp3ID3Buffer)*/MP3_AUDIO_BUF_SZ) {
                     f_lseek(fd, f_tell(fd) + p + frameSize + frameHeaderSize);
 
-                    f_read(fd, (char*) mp3ID3Buffer, sizeof(mp3ID3Buffer), &bytesRead);
+                    f_read(fd, (char*) mp3ID3Buffer, /*sizeof(mp3ID3Buffer)*/MP3_AUDIO_BUF_SZ, &bytesRead);
                     p += frameSize + frameHeaderSize;
                     i = 0;
                     continue;
                 } else {
-                    int r = sizeof(mp3ID3Buffer) - i;
+                    int r = /*sizeof(mp3ID3Buffer)*/MP3_AUDIO_BUF_SZ - i;
                     memmove(mp3ID3Buffer, mp3ID3Buffer + i, r);
                     f_read(fd, (char*) mp3ID3Buffer + r, i, &bytesRead);
                     i = 0;

@@ -41,7 +41,7 @@
  * scalfact.c - scalefactor unpacking functions
  **************************************************************************************/
 
-#include "coder.h"
+#include "../../../MP3/fixpt/real/coder.h"
 
 /* scale factor lengths (num bits) */
 static const char SFLenTab[16][2] = {

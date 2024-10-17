@@ -51,7 +51,14 @@
 
 #include "coder.h"
 
-extern unsigned long _sccmram;
+#define BUFFER_SCHEMA 2
+
+#if BUFFER_SCHEMA == 2
+    extern void* _sccmram;
+#elif BUFFER_SCHEMA == 3
+    static AACDecInfo AACDecInfoInst;
+    static PSInfoBase PSInfoBaseInst;
+#endif
 
 /**************************************************************************************
  * Function:    ClearBuffer
@@ -96,19 +103,28 @@ void ClearBuffer(void *buf, int nBytes)
 AACDecInfo *AllocateBuffers(void)
 {
 	AACDecInfo *aacDecInfo;
+#if BUFFER_SCHEMA == 1
+	aacDecInfo = (AACDecInfo *)malloc(sizeof(AACDecInfo));
+#elif BUFFER_SCHEMA == 2
 	char *pCcmData = (char*)&_sccmram;
-
-	//aacDecInfo = (AACDecInfo *)malloc(sizeof(AACDecInfo));
 	aacDecInfo = (AACDecInfo *)pCcmData;
-    pCcmData += sizeof(AACDecInfo);
+	pCcmData += sizeof(AACDecInfo);
+#elif BUFFER_SCHEMA == 3
+	aacDecInfo = &AACDecInfoInst;
+#endif
 
 	if (!aacDecInfo)
 		return 0;
 	ClearBuffer(aacDecInfo, sizeof(AACDecInfo));
 
-	//aacDecInfo->psInfoBase = malloc(sizeof(PSInfoBase));
+#if BUFFER_SCHEMA == 1
+	aacDecInfo->psInfoBase = malloc(sizeof(PSInfoBase));
+#elif BUFFER_SCHEMA == 2
 	aacDecInfo->psInfoBase = (void*)pCcmData;
-    pCcmData += sizeof(PSInfoBase);
+	pCcmData += sizeof(PSInfoBase);
+#elif BUFFER_SCHEMA == 3
+	aacDecInfo->psInfoBase = &PSInfoBaseInst;
+#endif
 
 	if (!aacDecInfo->psInfoBase) {
 		FreeBuffers(aacDecInfo);
@@ -120,8 +136,11 @@ AACDecInfo *AllocateBuffers(void)
 }
 
 #ifndef SAFE_FREE
-//#define SAFE_FREE(x)	{if (x)	free(x);	(x) = 0;}	/* helper macro */
-#define SAFE_FREE(x)    {if (x) (x) = 0;}   /* helper macro */
+    #if BUFFER_SCHEMA == 1
+        #define SAFE_FREE(x)	{if (x)	free(x);	(x) = 0;}	/* helper macro */
+    #else
+        #define SAFE_FREE(x)    {if (x) (x) = 0;}   /* helper macro */
+    #endif
 #endif
 
 /**************************************************************************************

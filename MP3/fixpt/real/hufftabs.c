@@ -41,7 +41,7 @@
  * hufftabs.c - compressed Huffman code tables
  **************************************************************************************/
 
-#include "coder.h"
+#include "../../../MP3/fixpt/real/coder.h"
 
 /* NOTE - regenerated tables to use shorts instead of ints 
  *        (all needed data can fit in 16 bits - see below)

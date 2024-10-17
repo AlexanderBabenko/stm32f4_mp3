@@ -42,8 +42,8 @@
  *               coefficient reordering
  **************************************************************************************/
 
-#include "coder.h"
-#include "assembly.h"
+#include "../../../MP3/fixpt/real/assembly.h"
+#include "../../../MP3/fixpt/real/coder.h"
 
 /**************************************************************************************
  * Function:    Dequantize

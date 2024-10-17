@@ -47,19 +47,23 @@
 
 // J.Sz. 21/04/2006 #include "hlxclib/stdlib.h"		/* for malloc, free */ 
 #include "stdlib.h" // J.Sz. 21/04/2006
-#include "coder.h"
 #include "FreeRTOS.h"
+#include "../../../MP3/fixpt/real/coder.h"
 
-extern unsigned long _sccmram;
+#define BUFFER_SCHEMA 2
 
-/*static MP3DecInfo MP3DecInfoInst __attribute__((section(".ccmdata")));
-static FrameHeader FrameHeaderInst __attribute__((section(".ccmdata")));
-static SideInfo SideInfoInst __attribute__((section(".ccmdata")));
-static ScaleFactorInfo ScaleFactorInfoInst __attribute__((section(".ccmdata")));
-static HuffmanInfo HuffmanInfoInst __attribute__((section(".ccmdata")));
-static DequantInfo DequantInfoInst __attribute__((section(".ccmdata")));
-static IMDCTInfo IMDCTInfoInst __attribute__((section(".ccmdata")));
-static SubbandInfo SubbandInfoInst __attribute__((section(".ccmdata")));*/
+#if BUFFER_SCHEMA == 2
+    extern void * _sccmram;
+#elif BUFFER_SCHEMA == 3
+    static MP3DecInfo MP3DecInfoInst;// __attribute__((section(".ccmdata")));
+    static FrameHeader FrameHeaderInst;// __attribute__((section(".ccmdata")));
+    static SideInfo SideInfoInst;// __attribute__((section(".ccmdata")));
+    static ScaleFactorInfo ScaleFactorInfoInst;// __attribute__((section(".ccmdata")));
+    static HuffmanInfo HuffmanInfoInst;// __attribute__((section(".ccmdata")));
+    static DequantInfo DequantInfoInst;// __attribute__((section(".ccmdata")));
+    static IMDCTInfo IMDCTInfoInst;// __attribute__((section(".ccmdata")));
+    static SubbandInfo SubbandInfoInst;// __attribute__((section(".ccmdata")));/**/
+#endif
 
 /**************************************************************************************
  * Function:    ClearBuffer
@@ -113,48 +117,52 @@ MP3DecInfo *AllocateBuffers(void)
 	IMDCTInfo *mi;
 	SubbandInfo *sbi;
 
+#if BUFFER_SCHEMA == 1
+	mp3DecInfo = (MP3DecInfo *)malloc(sizeof(MP3DecInfo));
+#elif BUFFER_SCHEMA == 2
 	char *pCcmData = (char*)&_sccmram;
-
-	//mp3DecInfo = (MP3DecInfo *)malloc(sizeof(MP3DecInfo));
-	//mp3DecInfo = &MP3DecInfoInst;
-
 	mp3DecInfo = (MP3DecInfo *) pCcmData;
 	pCcmData += sizeof(MP3DecInfo);
+#elif BUFFER_SCHEMA == 3
+	mp3DecInfo = &MP3DecInfoInst;
+#endif
 
 	if (!mp3DecInfo)
 		return 0;
 	ClearBuffer(mp3DecInfo, sizeof(MP3DecInfo));
-	
-	/*fh =  (FrameHeader *)     malloc(sizeof(FrameHeader));
+
+#if BUFFER_SCHEMA == 1
+	fh =  (FrameHeader *)     malloc(sizeof(FrameHeader));
 	si =  (SideInfo *)        malloc(sizeof(SideInfo));
 	sfi = (ScaleFactorInfo *) malloc(sizeof(ScaleFactorInfo));
 	hi =  (HuffmanInfo *)     malloc(sizeof(HuffmanInfo));
 	di =  (DequantInfo *)     malloc(sizeof(DequantInfo));
 	mi =  (IMDCTInfo *)       malloc(sizeof(IMDCTInfo));
-	sbi = (SubbandInfo *)     malloc(sizeof(SubbandInfo));*/
-
-	/*fh =  &FrameHeaderInst;
-	si =  &SideInfoInst;
-	sfi = &ScaleFactorInfoInst;
-	hi =  &HuffmanInfoInst;
-	di =  &DequantInfoInst;
-	mi =  &IMDCTInfoInst;
-	sbi = &SubbandInfoInst;*/
-
-	fh =  (FrameHeader *) pCcmData;
+	sbi = (SubbandInfo *)     malloc(sizeof(SubbandInfo));
+#elif BUFFER_SCHEMA == 2
+    fh =  (FrameHeader *) pCcmData;
     pCcmData += sizeof(FrameHeader);
-	si =  (SideInfo *) pCcmData;
+    si =  (SideInfo *) pCcmData;
     pCcmData += sizeof(SideInfo);
-	sfi = (ScaleFactorInfo *) pCcmData;
+    sfi = (ScaleFactorInfo *) pCcmData;
     pCcmData += sizeof(ScaleFactorInfo);
-	hi =  (HuffmanInfo *) pCcmData;
+    hi =  (HuffmanInfo *) pCcmData;
     pCcmData += sizeof(HuffmanInfo);
-	di =  (DequantInfo *) pCcmData;
+    di =  (DequantInfo *) pCcmData;
     pCcmData += sizeof(DequantInfo);
-	mi =  (IMDCTInfo *) pCcmData;
+    mi =  (IMDCTInfo *) pCcmData;
     pCcmData += sizeof(IMDCTInfo);
-	sbi = (SubbandInfo *) pCcmData;
+    sbi = (SubbandInfo *) pCcmData;
     pCcmData += sizeof(SubbandInfo);
+#elif BUFFER_SCHEMA == 3
+    fh =  &FrameHeaderInst;
+    si =  &SideInfoInst;
+    sfi = &ScaleFactorInfoInst;
+    hi =  &HuffmanInfoInst;
+    di =  &DequantInfoInst;
+    mi =  &IMDCTInfoInst;
+    sbi = &SubbandInfoInst;
+#endif
 
 	mp3DecInfo->FrameHeaderPS =     (void *)fh;
 	mp3DecInfo->SideInfoPS =        (void *)si;
@@ -180,9 +188,13 @@ MP3DecInfo *AllocateBuffers(void)
 
 	return mp3DecInfo;
 }
-
-//#define SAFE_FREE(x)	{if (x)	free(x);	(x) = 0;}	/* helper macro */
-#define SAFE_FREE(x)	{if (x)	(x) = 0;}	/* helper macro */
+#ifndef SAFE_FREE
+    #if BUFFER_SCHEMA == 1
+        #define SAFE_FREE(x)	{if (x)	free(x);	(x) = 0;}	/* helper macro */
+    #else
+        #define SAFE_FREE(x)	{if (x)	(x) = 0;}	/* helper macro */
+    #endif
+#endif
 
 /**************************************************************************************
  * Function:    FreeBuffers
